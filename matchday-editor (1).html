@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bury CC — Matchday Sheet Editor</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+@font-face{font-family:'BebasNeueBookCustom';src:url('assets/fonts/Bebas%20Neue%20Book.ttf') format('truetype');font-weight:400;font-style:normal}
+@font-face{font-family:'BebasRegularCustom';src:url('assets/fonts/Bebas-Regular.ttf') format('truetype');font-weight:400;font-style:normal}
+:root{--navy:#19213d;--navy-light:#3a347d;--panel-bg:#e5e5e5;--panel-surface:#ffffff;--border:#cfcac0;--text:#111111;--muted:#666666;--gold:#f7d536;--red:#db1e2b;--radius:12px;--font-bebas-book:'BebasNeueBookCustom',sans-serif;--font-bebas-regular:'BebasRegularCustom',sans-serif}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:linear-gradient(180deg,#394772 0%,#19213d 100%);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 16px}
+body.is-locked header,body.is-locked .workspace{display:none}
+header{width:100%;max-width:380px;margin-bottom:24px}
+header div{background:linear-gradient(135deg,rgba(25,33,61,.98),rgba(24,22,68,.98));border:1px solid rgba(247,213,54,.45);border-radius:16px;padding:18px 22px 16px;box-shadow:0 18px 34px rgba(17,17,17,.22);position:relative;overflow:hidden}
+header div::after{content:'';position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--gold) 0 68%,var(--red) 68% 100%)}
+header h1{font-family:var(--font-bebas-regular);font-size:26px;letter-spacing:2px;color:#ffffff}
+header p{font-size:12px;color:rgba(255,255,255,.82);margin-top:2px}
+.auth-gate{display:none;width:100%;max-width:380px;min-height:calc(100vh - 56px);align-items:center;justify-content:center}
+body.is-locked .auth-gate{display:flex}
+.auth-card{width:100%;background:rgba(255,255,255,.96);border-radius:16px;border:1px solid rgba(25,33,61,.14);overflow:hidden;box-shadow:0 24px 48px rgba(17,17,17,.16)}
+.auth-card-header{background:linear-gradient(135deg,rgba(25,33,61,.98),rgba(24,22,68,.98));padding:18px 22px 16px;border-bottom:1px solid rgba(247,213,54,.35);position:relative;overflow:hidden}
+.auth-card-header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--gold) 0 68%,var(--red) 68% 100%)}
+.auth-card-header h1{font-family:var(--font-bebas-regular);font-size:26px;letter-spacing:2px;color:#ffffff}
+.auth-card-header p{font-size:12px;color:rgba(255,255,255,.82);margin-top:2px}
+.auth-card-body{padding:20px}
+.auth-card-body label{display:block;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--navy);margin-bottom:10px}
+.auth-form{display:flex;flex-direction:column;gap:10px}
+.auth-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:8px;font-size:20px;font-family:var(--font-bebas-regular);letter-spacing:2px;background:var(--panel-bg);color:var(--text);text-align:center}
+.auth-input:focus{outline:none;border-color:var(--red);background:#ffffff;box-shadow:0 0 0 3px rgba(247,213,54,.3)}
+.auth-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--red) 0,#ad1625 100%);color:#ffffff;border:1px solid rgba(17,17,17,.18);border-radius:10px;font-family:var(--font-bebas-regular);font-size:17px;letter-spacing:2px;cursor:pointer;box-shadow:0 12px 24px rgba(219,30,43,.22)}
+.auth-btn:hover{background:linear-gradient(135deg,#f02837 0,var(--red) 58%,var(--navy) 100%)}
+.auth-error{min-height:18px;font-size:12px;line-height:1.4;color:var(--red)}
+.download-validation-dialog{position:fixed;inset:0;background:rgba(17,17,17,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:40}
+.download-validation-dialog[hidden]{display:none}
+.download-validation-card{width:100%;max-width:380px;background:rgba(255,255,255,.98);border-radius:16px;border:1px solid rgba(25,33,61,.14);overflow:hidden;box-shadow:0 24px 48px rgba(17,17,17,.22)}
+.download-validation-header{background:linear-gradient(135deg,rgba(25,33,61,.98),rgba(24,22,68,.98));padding:18px 22px 16px;border-bottom:1px solid rgba(247,213,54,.35);position:relative;overflow:hidden}
+.download-validation-header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:5px;background:linear-gradient(90deg,var(--gold) 0 68%,var(--red) 68% 100%)}
+.download-validation-header h1{font-family:var(--font-bebas-regular);font-size:26px;letter-spacing:2px;color:#ffffff}
+.download-validation-header p{font-size:12px;color:rgba(255,255,255,.82);margin-top:2px}
+.download-validation-body{padding:20px}
+.download-validation-list{margin:0;padding-left:18px;max-height:220px;overflow:auto;font-size:13px;line-height:1.5;color:var(--text)}
+.download-validation-list li+li{margin-top:4px}
+.download-validation-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+.download-validation-btn{padding:13px;border-radius:10px;border:1px solid rgba(17,17,17,.18);font-family:var(--font-bebas-regular);font-size:17px;letter-spacing:2px;cursor:pointer}
+.download-validation-btn.back{background:#ffffff;color:var(--navy);border-color:rgba(25,33,61,.18);box-shadow:0 8px 16px rgba(17,17,17,.06)}
+.download-validation-btn.continue{background:linear-gradient(135deg,var(--red) 0,#ad1625 100%);color:#ffffff;box-shadow:0 12px 24px rgba(219,30,43,.22)}
+.download-validation-btn.back:hover{background:#f7f7f7}
+.download-validation-btn.continue:hover{background:linear-gradient(135deg,#f02837 0,var(--red) 58%,var(--navy) 100%)}
+.workspace{width:100%;max-width:380px}
+.panel{background:rgba(255,255,255,.96);border-radius:var(--radius);border:1px solid rgba(25,33,61,.14);overflow:hidden;box-shadow:0 24px 48px rgba(17,17,17,.12)}
+.panel-section{padding:18px 20px;border-bottom:1px solid rgba(25,33,61,.1)}
+.panel-section:last-child{border-bottom:none}
+.panel-section h2{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--navy);margin-bottom:12px}
+.player-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.player-btn{background:linear-gradient(180deg,#ffffff 0,var(--panel-bg) 100%);border:1.5px solid rgba(25,33,61,.14);border-radius:10px;padding:7px 6px;cursor:pointer;transition:all .15s;font-size:11px;font-weight:600;color:var(--text);line-height:1.3;display:flex;flex-direction:column;align-items:center;box-shadow:0 6px 14px rgba(17,17,17,.04)}
+.player-btn:hover{border-color:var(--navy-light);background:linear-gradient(180deg,#ffffff 0,#ebe8e0 100%)}
+.player-btn.active{background:linear-gradient(180deg,var(--navy) 0,#161342 100%);border-color:var(--navy);color:#ffffff;box-shadow:0 10px 20px rgba(25,33,61,.26)}
+.player-btn img{width:38px;height:38px;border-radius:50%;object-fit:cover;object-position:top center;margin-bottom:4px;background:#2a3a5c}
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+.team-btn{background:linear-gradient(180deg,#ffffff 0,var(--panel-bg) 100%);border:1.5px solid rgba(25,33,61,.14);border-radius:10px;padding:9px 6px;cursor:pointer;transition:all .15s;font-size:10px;font-weight:600;color:var(--text);display:flex;flex-direction:column;align-items:center;box-shadow:0 6px 14px rgba(17,17,17,.04)}
+.team-btn:hover{border-color:var(--navy-light);background:linear-gradient(180deg,#ffffff 0,#ebe8e0 100%)}
+.team-btn.active{background:linear-gradient(180deg,var(--navy) 0,#161342 100%);border-color:var(--navy);color:#ffffff;box-shadow:0 10px 20px rgba(25,33,61,.26)}
+.team-btn img{width:58px;height:58px;object-fit:contain;margin-bottom:4px;background:var(--navy);border-radius:50%;padding:1px}
+.name-list{display:flex;flex-direction:column;gap:5px}
+.name-row{display:flex;gap:6px;align-items:center}
+.name-row span{font-size:10px;color:var(--muted);width:14px;text-align:right;flex-shrink:0}
+.name-row-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;flex:1}
+.name-row input{flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--panel-bg);color:var(--text)}
+.name-row input.player-first-name-input{font-family:var(--font-bebas-book);letter-spacing:.3px}
+.name-row input.player-last-name-input{font-family:var(--font-bebas-regular);letter-spacing:.3px}
+.name-row input:focus{outline:none;border-color:var(--red);background:#ffffff;box-shadow:0 0 0 3px rgba(247,213,54,.3)}
+.match-detail-grid{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px}
+.match-schedule-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.stack-inputs{display:flex;flex-direction:column;gap:8px}
+.team-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.team-filter-btn{padding:9px 12px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.88);color:var(--text);font-family:var(--font-bebas-regular);font-size:14px;letter-spacing:1.2px;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease,transform .2s ease}
+.team-filter-btn:hover{border-color:var(--navy);transform:translateY(-1px)}
+.team-filter-btn.active{background:var(--navy);border-color:var(--navy);color:#ffffff}
+.date-input,.detail-input,.detail-select{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:var(--font-bebas-regular);letter-spacing:1px;background:var(--panel-bg);color:var(--text)}
+.date-input:focus,.detail-input:focus,.detail-select:focus{outline:none;border-color:var(--red);background:#ffffff;box-shadow:0 0 0 3px rgba(247,213,54,.3)}
+.download-actions{display:flex;flex-direction:column;gap:10px}
+.download-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--red) 0,#ad1625 100%);color:#ffffff;border:1px solid rgba(17,17,17,.18);border-radius:10px;font-family:var(--font-bebas-regular);font-size:17px;letter-spacing:2px;cursor:pointer;box-shadow:0 12px 24px rgba(219,30,43,.22)}
+.download-btn:hover{background:linear-gradient(135deg,#f02837 0,var(--red) 58%,var(--navy) 100%)}
+.download-btn.link-btn{display:block;text-align:center;text-decoration:none;background:linear-gradient(135deg,var(--navy) 0,#12182d 100%);box-shadow:0 12px 24px rgba(25,33,61,.24)}
+.download-btn.link-btn:hover{background:linear-gradient(135deg,#31426f 0,var(--navy) 58%,var(--red) 100%)}
+.download-btn.square-btn{background:linear-gradient(135deg,var(--navy) 0,#12182d 100%);box-shadow:0 12px 24px rgba(25,33,61,.24)}
+.download-btn.square-btn:hover{background:linear-gradient(135deg,#31426f 0,var(--navy) 58%,var(--red) 100%)}
+.download-btn:disabled{opacity:.7;cursor:progress}
+.download-status{margin-top:10px;font-size:12px;line-height:1.4;color:var(--muted)}
+.download-status.warning{color:#8a5a00}
+.download-status.error{color:var(--red)}
+.download-status.success{color:#1f6f43}
+</style>
+</head>
+<body class="is-locked">
+<div class="auth-gate" id="authGate">
+  <div class="auth-card">
+    <div class="auth-card-header"><h1>Protected Editor</h1><p>Enter the password to open the matchday sheet editor.</p></div>
+    <div class="auth-card-body">
+      <form class="auth-form" id="authForm" autocomplete="off">
+        <label for="passwordInput">Password</label>
+        <input class="auth-input" type="password" id="passwordInput" inputmode="numeric" placeholder="Enter password" aria-describedby="authError">
+        <button class="auth-btn" type="submit">Unlock Editor</button>
+        <p class="auth-error" id="authError" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="download-validation-dialog" id="downloadValidationDialog" hidden>
+  <div class="download-validation-card" role="dialog" aria-modal="true" aria-labelledby="downloadValidationTitle" aria-describedby="downloadValidationMessage">
+    <div class="download-validation-header"><h1 id="downloadValidationTitle">Missing Details</h1><p id="downloadValidationMessage">These boxes are still empty. Go back to fill them in, or download anyway.</p></div>
+    <div class="download-validation-body"><ul class="download-validation-list" id="downloadValidationList"></ul><div class="download-validation-actions"><button class="download-validation-btn back" type="button" id="cancelDownloadValidationBtn">Back</button><button class="download-validation-btn continue" type="button" id="confirmDownloadValidationBtn">Download Anyway</button></div></div>
+  </div>
+</div>
+<header>
+  <div><h1>Matchday Sheet Editor</h1><p>Bury Cricket Club — Bury CC</p></div>
+</header>
+<div class="workspace">
+  <div class="panel">
+    <div class="panel-section"><h2>Featured Player Photo</h2><div class="player-grid" id="playerGrid"></div></div>
+    <div class="panel-section"><h2>Opponent Badge</h2><div class="team-filter-row" id="teamFilterRow"><button class="team-filter-btn active" type="button" data-team-filter="all">All Badges</button><button class="team-filter-btn" type="button" data-team-filter="first">1st Team</button><button class="team-filter-btn" type="button" data-team-filter="second">2nd Team</button></div><div class="team-grid" id="teamGrid"></div></div>
+    <div class="panel-section"><h2>Playing XI Names</h2><div class="name-list" id="nameList"></div></div>
+    <div class="panel-section"><h2>Poster Title</h2><div class="stack-inputs"><input class="date-input" type="text" id="titleInput" value="BURY CC" placeholder="e.g. BURY CC"><input class="date-input" type="text" id="teamLabelInput" value="" placeholder="e.g. 1ST XI, 2ND XI"></div></div>
+    <div class="panel-section"><h2>Match Venue</h2><div class="match-detail-grid"><select class="detail-select" id="venueTypeInput"><option value="HOME" selected>Home</option><option value="AWAY">Away</option></select><input class="detail-input" type="text" id="addressInput" value="Radcliffe Road" placeholder="Address"></div></div>
+    <div class="panel-section"><h2>Match Schedule</h2><div class="match-schedule-grid"><input class="date-input" type="text" id="dateInput" value="" placeholder="e.g. SAT 14 JUNE"><input class="date-input" type="text" id="gameTimeInput" value="" placeholder="e.g. 1PM"></div></div>
+    <div class="panel-section"><div class="download-actions"><button class="download-btn" id="downloadBtn" onclick="downloadSheet()">Download PNG</button><a class="download-btn link-btn" id="resourcesLinkBtn" href="https://drive.google.com/drive/folders/1gQ1dvz9VVDO2FYfGMFf10VrO_p4i5jFQ?usp=sharing" target="_blank" rel="noopener noreferrer">Open Google Drive Folder</a></div><p class="download-status" id="downloadStatus" hidden></p></div>
+  </div>
+</div>
+<script>
+// Replace the files in the assets folders to update the artwork without changing the editor UI.
+const DEFAULT_POSTER_TITLE='BURY CC';
+const LEGACY_DEFAULT_POSTER_TITLE='PLAYING XI';
+const DEFAULT_TEAM_LABEL='';
+const DEFAULT_MATCH_DATE='';
+const LEGACY_DEFAULT_MATCH_DATE='SUN 10 JUNE';
+const DEFAULT_ADDRESS='Radcliffe Road';
+const PLAYER_TRIMS = {
+  1: {x:439,y:672,width:3167,height:5328},
+  2: {x:555,y:683,width:2714,height:5317},
+  3: {x:732,y:726,width:2466,height:5274},
+  4: {x:446,y:610,width:2939,height:5390},
+  5: {x:540,y:742,width:2867,height:5258},
+  6: {x:633,y:437,width:2755,height:5563},
+  8: {x:470,y:598,width:2929,height:5402},
+  12: {x:598,y:662,width:2808,height:5338},
+};
+const ASSET_VERSION=Date.now().toString(36);
+const assetPath=path=>`${path}?v=${ASSET_VERSION}`;
+const PLAYERS = Array.from({length:17},(_,index)=>({
+  name: `Player ${index+1}`,
+  src: assetPath(`assets/players/player-${index+1}.png`),
+  thumb: assetPath(`assets/players/thumbs/player-${index+1}.png`),
+  trim: PLAYER_TRIMS[index+1]
+}));
+const TEAMS = [
+  {
+    name: "Adlington CC",
+    src: assetPath("assets/badges/adlington-cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Ashton CC",
+    src: assetPath("assets/badges/ashton_cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Austerlands CC",
+    src: assetPath("assets/badges/austerlands_cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Blackley CC",
+    src: assetPath("assets/badges/blackley-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Bolton Indians CC",
+    src: assetPath("assets/badges/bolton_indians_cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Brooksbottom CC",
+    src: assetPath("assets/badges/brooksbottom-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Cheetham Hill CC",
+    src: assetPath("assets/badges/cheetham-hill-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Darcy Lever CC",
+    src: assetPath("assets/badges/darcy_lever_cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Deane & Derby CC",
+    src: assetPath("assets/badges/deane_&_derby_cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Edenfield CC",
+    src: assetPath("assets/badges/edenfield-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Edgworth CC",
+    src: assetPath("assets/badges/edgworth-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Friarmere CC",
+    src: assetPath("assets/badges/friarmere-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Glodwick CC",
+    src: assetPath("assets/badges/glodwick-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Oldham CC",
+    src: assetPath("assets/badges/oldham-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Prestwich CC",
+    src: assetPath("assets/badges/prestwitch_cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Springhead CC",
+    src: assetPath("assets/badges/springhead-cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "SW Manchester CC",
+    src: assetPath("assets/badges/sw_manchester_cc.png"),
+    squad: ['first','second']
+  },
+  {
+    name: "Thornham CC",
+    src: assetPath("assets/badges/thornham_cc.png"),
+    squad: 'second'
+  },
+  {
+    name: "Tottington St John's CC",
+    src: assetPath("assets/badges/tottington_st_johns_cc.png"),
+    squad: ['first','second']
+  },
+  {
+    name: "Werneth CC",
+    src: assetPath("assets/badges/werneth_cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Whalley Range CC",
+    src: assetPath("assets/badges/whalley-range-cc.png"),
+    squad: 'first'
+  },
+  {
+    name: "Woodley CC",
+    src: assetPath("assets/badges/woodley_cc.png"),
+    squad: 'first'
+  }
+];
+const BG_SRC = assetPath("assets/background/matchday-background.png");
+const BURY_BADGE = {
+  src: assetPath("assets/badges/bury-cc.png")
+};
+const DEFAULT_NAMES=Array.from({length:11},()=>({first:'',last:''}));
+let state={playerIndex:0,teamIndex:0,teamFilter:'all',names:DEFAULT_NAMES.map(name=>({first:name.first,last:name.last}))};
+let imgs={players:Array(PLAYERS.length).fill(null),teams:Array(TEAMS.length).fill(null),bg:null,bury:null};
+const badgeBoundsCache=new WeakMap();
+const playerBoundsCache=new WeakMap();
+let fontLoadPromise=null;
+const BASE_W=900,BASE_H=1125;
+const EXPORT_W=4000,EXPORT_H=5000;
+const SQUARE_EXPORT_W=2000,SQUARE_EXPORT_H=2000;
+const FIRST_NAME_FONT='"BebasNeueBookCustom", sans-serif';
+const LAST_NAME_FONT='"BebasRegularCustom", sans-serif';
+const PLAYER_REFERENCE_BOUNDS=PLAYER_TRIMS[8];
+const PLAYER_NAME_FONT_SIZE=31;
+const PLAYER_NAME_LINE_HEIGHT=36;
+const TEAM_LABEL_FONT_SIZE=36;
+const MATCH_DATE_FONT_SIZE=36;
+const MATCH_META_FONT_SIZE=36;
+const MATCH_TIME_FONT_SIZE=36;
+const TEXT_BLOCK_OFFSET_Y=-54;
+const STORAGE_KEY='burycc-matchday-editor-form';
+const PASSWORD_VALUE='1845';
+const PASSWORD_SESSION_KEY='burycc-matchday-editor-unlocked';
+const downloadBtn=document.getElementById('downloadBtn');
+const downloadStatus=document.getElementById('downloadStatus');
+const downloadValidationDialog=document.getElementById('downloadValidationDialog');
+const downloadValidationList=document.getElementById('downloadValidationList');
+const cancelDownloadValidationBtn=document.getElementById('cancelDownloadValidationBtn');
+const confirmDownloadValidationBtn=document.getElementById('confirmDownloadValidationBtn');
+const authGate=document.getElementById('authGate');
+const authForm=document.getElementById('authForm');
+const passwordInput=document.getElementById('passwordInput');
+const authError=document.getElementById('authError');
+const exportButtons=[downloadBtn].filter(Boolean);
+let pendingDownloadOptions=null;
+let appInitialized=false;
+
+function isUnlocked(){
+  try{
+    return sessionStorage.getItem(PASSWORD_SESSION_KEY)==='true';
+  }catch{
+    return false;
+  }
+}
+
+function setUnlocked(){
+  try{
+    sessionStorage.setItem(PASSWORD_SESSION_KEY,'true');
+  }catch{}
+}
+
+function showAuthError(message=''){
+  if(authError) authError.textContent=message;
+}
+
+function unlockEditor(){
+  document.body.classList.remove('is-locked');
+  if(authGate) authGate.setAttribute('hidden','hidden');
+}
+
+function loadStoredFormState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    const parsed=JSON.parse(raw);
+    if(!parsed || typeof parsed!=='object') return null;
+    return parsed;
+  }catch{
+    return null;
+  }
+}
+
+function saveStoredFormState(){
+  try{
+    const names=Array.from(document.querySelectorAll('.name-row')).map(row=>({
+      first:row.querySelector('.player-first-name-input')?.value || '',
+      last:row.querySelector('.player-last-name-input')?.value || ''
+    }));
+    const payload={
+      names,
+      title:document.getElementById('titleInput')?.value || DEFAULT_POSTER_TITLE,
+      teamLabel:document.getElementById('teamLabelInput')?.value || DEFAULT_TEAM_LABEL,
+      date:document.getElementById('dateInput')?.value || '',
+      gameTime:document.getElementById('gameTimeInput')?.value || '',
+      venueType:document.getElementById('venueTypeInput')?.value || 'HOME',
+      address:document.getElementById('addressInput')?.value || DEFAULT_ADDRESS
+    };
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(payload));
+  }catch{}
+}
+
+function splitPosterTitle(title){
+  const trimmed=title.trim();
+  if(!trimmed) return {lead:'',accent:''};
+
+  const lastSpace=trimmed.lastIndexOf(' ');
+  if(lastSpace===-1) return {lead:trimmed,accent:''};
+
+  return {
+    lead:trimmed.slice(0,lastSpace),
+    accent:' '+trimmed.slice(lastSpace+1)
+  };
+}
+
+function getInitialFormState(){
+  const stored=loadStoredFormState();
+  if(!stored) return null;
+
+  const storedTitle=(stored.title || '').trim();
+  const storedDate=(stored.date || '').trim();
+
+  const names=Array.from({length:DEFAULT_NAMES.length},(_,index)=>({
+    first:stored.names?.[index]?.first || '',
+    last:stored.names?.[index]?.last || ''
+  }));
+
+  return {
+    names,
+    title:!storedTitle || storedTitle===LEGACY_DEFAULT_POSTER_TITLE ? DEFAULT_POSTER_TITLE : stored.title,
+    teamLabel:stored.teamLabel || DEFAULT_TEAM_LABEL,
+    date:!storedDate || storedDate===LEGACY_DEFAULT_MATCH_DATE ? DEFAULT_MATCH_DATE : stored.date,
+    gameTime:stored.gameTime || '',
+    venueType:stored.venueType || 'HOME',
+    address:stored.address || DEFAULT_ADDRESS
+  };
+}
+
+function attachFormPersistence(){
+  document.querySelectorAll('.player-first-name-input,.player-last-name-input,#titleInput,#teamLabelInput,#dateInput,#gameTimeInput,#venueTypeInput,#addressInput').forEach(input=>{
+    input.addEventListener('input',saveStoredFormState);
+    input.addEventListener('change',saveStoredFormState);
+  });
+}
+
+function getOrdinalLabel(value){
+  const mod100=value%100;
+  if(mod100>=11 && mod100<=13) return value+'th';
+
+  switch(value%10){
+    case 1:return value+'st';
+    case 2:return value+'nd';
+    case 3:return value+'rd';
+    default:return value+'th';
+  }
+}
+
+function collectMissingDownloadFields(){
+  const missingFields=[];
+
+  Array.from(document.querySelectorAll('.name-row')).forEach((row,index)=>{
+    const firstName=row.querySelector('.player-first-name-input')?.value || '';
+    const surname=row.querySelector('.player-last-name-input')?.value || '';
+    const ordinal=getOrdinalLabel(index+1);
+    if(!firstName.trim()) missingFields.push(ordinal+' name');
+    if(!surname.trim()) missingFields.push(ordinal+' surname');
+  });
+
+  if(!(document.getElementById('titleInput')?.value || '').trim()) missingFields.push('poster title');
+  if(!(document.getElementById('teamLabelInput')?.value || '').trim()) missingFields.push('team');
+  if(!(document.getElementById('addressInput')?.value || '').trim()) missingFields.push('match venue');
+  if(!(document.getElementById('dateInput')?.value || '').trim()) missingFields.push('match date');
+  if(!(document.getElementById('gameTimeInput')?.value || '').trim()) missingFields.push('match time');
+
+  return missingFields;
+}
+
+function closeDownloadValidationDialog(returnFocus=true){
+  if(downloadValidationDialog) downloadValidationDialog.hidden=true;
+  if(downloadValidationList) downloadValidationList.innerHTML='';
+  document.body.classList.remove('is-modal-open');
+  pendingDownloadOptions=null;
+  if(returnFocus) downloadBtn?.focus();
+}
+
+function showDownloadValidationDialog(missingFields,options){
+  if(!downloadValidationDialog || !downloadValidationList){
+    downloadExport(options);
+    return;
+  }
+
+  pendingDownloadOptions=options;
+  downloadValidationList.innerHTML='';
+  missingFields.forEach(field=>{
+    const item=document.createElement('li');
+    item.textContent=field;
+    downloadValidationList.appendChild(item);
+  });
+  downloadValidationDialog.hidden=false;
+  document.body.classList.add('is-modal-open');
+  confirmDownloadValidationBtn?.focus();
+}
+
+function getVisibleTeamIndexes(){
+  return TEAMS.map((team,index)=>({team,index})).filter(({team})=>{
+    if(state.teamFilter==='all') return true;
+    const squads=Array.isArray(team.squad)?team.squad:[team.squad];
+    return squads.includes(state.teamFilter);
+  }).map(({index})=>index);
+}
+
+function syncTeamFilterButtons(){
+  document.querySelectorAll('.team-filter-btn').forEach(button=>{
+    button.classList.toggle('active',button.dataset.teamFilter===state.teamFilter);
+  });
+}
+
+function ensureVisibleTeamSelection(visibleTeamIndexes){
+  if(visibleTeamIndexes.includes(state.teamIndex)) return;
+  state.teamIndex=visibleTeamIndexes[0] ?? 0;
+}
+
+function renderTeamGrid(){
+  const teamGrid=document.getElementById('teamGrid');
+  if(!teamGrid) return;
+
+  const visibleTeamIndexes=getVisibleTeamIndexes();
+  ensureVisibleTeamSelection(visibleTeamIndexes);
+  teamGrid.innerHTML='';
+
+  visibleTeamIndexes.forEach(index=>{
+    const team=TEAMS[index];
+    const btn=document.createElement('button');
+    btn.className='team-btn'+(state.teamIndex===index?' active':'');
+    btn.type='button';
+    const img=document.createElement('img');
+    img.src=team.src;
+    img.alt=team.name;
+    const label=document.createElement('span');
+    label.textContent=team.name;
+    btn.appendChild(img);
+    btn.appendChild(label);
+    btn.onclick=()=>{
+      state.teamIndex=index;
+      renderTeamGrid();
+    };
+    teamGrid.appendChild(btn);
+    createTrimmedPreview(team).then(previewSrc=>{
+      img.src=previewSrc;
+    });
+  });
+}
+
+function setDownloadStatus(message='',tone=''){
+  downloadStatus.textContent=message;
+  downloadStatus.className='download-status'+(tone?' '+tone:'');
+  downloadStatus.hidden=!message;
+}
+
+function resetDownloadStatus(){
+  if(location.protocol==='file:'){
+    setDownloadStatus('Chrome can interrupt PNG saving when this file is opened directly from your disk. The editor will try a normal browser download first, but if Chrome still refuses to save, use start-editor.command or open the localhost URL instead.','warning');
+    return;
+  }
+
+  setDownloadStatus('','');
+}
+
+function loadImg(source){
+  return new Promise(res=>{
+    const asset=typeof source==='string'?{src:source}:source;
+    const i=new Image();
+    i._trim=asset.trim||null;
+    i.onload=()=>res(i);
+    i.onerror=()=>res(null);
+    i.src=asset.src;
+  });
+}
+
+async function createTrimmedPreview(source,size=180){
+  const asset=typeof source==='string'?{src:source}:source;
+  const img=await loadImg(asset);
+  if(!img) return asset.src;
+
+  const bounds=img._trim||getOpaqueBounds(img);
+  const canvas=document.createElement('canvas');
+  canvas.width=size;
+  canvas.height=size;
+  const ctx=canvas.getContext('2d');
+  if(!ctx) return asset.src;
+
+  const aspect=bounds.width/bounds.height;
+  let drawWidth=size;
+  let drawHeight=size;
+  if(aspect>=1){
+    drawHeight=size/aspect;
+  }else{
+    drawWidth=size*aspect;
+  }
+
+  const dx=(size-drawWidth)/2;
+  const dy=(size-drawHeight)/2;
+  ctx.drawImage(img,bounds.x,bounds.y,bounds.width,bounds.height,dx,dy,drawWidth,drawHeight);
+  return canvas.toDataURL('image/png');
+}
+
+function ensureFontsLoaded(){
+  if(!fontLoadPromise){
+    fontLoadPromise=Promise.allSettled([
+      document.fonts.load('26px "BebasNeueBookCustom"'),
+      document.fonts.load('26px "BebasRegularCustom"'),
+      document.fonts.load('92px "BebasRegularCustom"'),
+      document.fonts.load('28px "BebasRegularCustom"')
+    ]);
+  }
+  return fontLoadPromise;
+}
+
+async function ensureExportAssetsLoaded(){
+  const pending=[];
+
+  if(!imgs.bg) pending.push(loadImg(BG_SRC).then(img=>{imgs.bg=img;}));
+  if(!imgs.bury) pending.push(loadImg(BURY_BADGE).then(img=>{imgs.bury=img;}));
+  if(!imgs.players[state.playerIndex]) pending.push(loadImg(PLAYERS[state.playerIndex]).then(img=>{imgs.players[state.playerIndex]=img;}));
+  if(!imgs.teams[state.teamIndex]) pending.push(loadImg(TEAMS[state.teamIndex]).then(img=>{imgs.teams[state.teamIndex]=img;}));
+
+  await Promise.all(pending);
+}
+
+function splitNameParts(fullName){
+  const trimmed=fullName.trim();
+  if(!trimmed) return {first:'',last:''};
+
+  const suffixMatch=trimmed.match(/\s+(\([^)]*\))$/);
+  const suffix=suffixMatch ? ' '+suffixMatch[1] : '';
+  const base=suffixMatch ? trimmed.slice(0,suffixMatch.index).trim() : trimmed;
+  const parts=base.split(/\s+/);
+
+  if(parts.length===1) return {first:'',last:parts[0]+suffix};
+
+  return {
+    first:parts.slice(0,-1).join(' '),
+    last:parts[parts.length-1]+suffix
+  };
+}
+
+function getOpaqueBounds(img,ignoreTrim=false){
+  const cache=ignoreTrim ? playerBoundsCache : badgeBoundsCache;
+  if(!ignoreTrim && img._trim) return img._trim;
+  if(cache.has(img)) return cache.get(img);
+
+  try{
+    const sampleCanvas=document.createElement('canvas');
+    sampleCanvas.width=img.naturalWidth||img.width;
+    sampleCanvas.height=img.naturalHeight||img.height;
+    const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
+    sampleCtx.drawImage(img,0,0);
+
+    const {data}=sampleCtx.getImageData(0,0,sampleCanvas.width,sampleCanvas.height);
+    let minX=sampleCanvas.width;
+    let minY=sampleCanvas.height;
+    let maxX=-1;
+    let maxY=-1;
+
+    for(let y=0;y<sampleCanvas.height;y++){
+      for(let x=0;x<sampleCanvas.width;x++){
+        const alpha=data[(y*sampleCanvas.width+x)*4+3];
+        if(alpha<=8) continue;
+        if(x<minX) minX=x;
+        if(y<minY) minY=y;
+        if(x>maxX) maxX=x;
+        if(y>maxY) maxY=y;
+      }
+    }
+
+    const bounds=maxX===-1
+      ? {x:0,y:0,width:sampleCanvas.width,height:sampleCanvas.height}
+      : {x:minX,y:minY,width:maxX-minX+1,height:maxY-minY+1};
+    cache.set(img,bounds);
+    return bounds;
+  }catch{
+    const fallback={x:0,y:0,width:img.naturalWidth||img.width,height:img.naturalHeight||img.height};
+    cache.set(img,fallback);
+    return fallback;
+  }
+}
+
+function drawBadge(targetCtx,img,cx,cy,size){
+  if(!img)return;
+  const bounds=getOpaqueBounds(img);
+  const aspect=bounds.width/bounds.height;
+  let bw,bh;
+  if(aspect>=1){bw=size;bh=size/aspect;}else{bh=size;bw=size*aspect;}
+  targetCtx.drawImage(img,bounds.x,bounds.y,bounds.width,bounds.height,cx-bw/2,cy-bh/2,bw,bh);
+}
+
+function createScale(width,height){
+  const sizeScale=((width/BASE_W)+(height/BASE_H))/2;
+  return {
+    px:value=>value*width/BASE_W,
+    py:value=>value*height/BASE_H,
+    ps:value=>value*sizeScale
+  };
+}
+
+function getPosterData(){
+  state.names=Array.from(document.querySelectorAll('.name-row')).map(row=>({
+    first:row.querySelector('.player-first-name-input')?.value || '',
+    last:row.querySelector('.player-last-name-input')?.value || ''
+  }));
+
+  return {
+    names:state.names,
+    posterTitle:(document.getElementById('titleInput')?.value || DEFAULT_POSTER_TITLE).trim(),
+    teamLabel:(document.getElementById('teamLabelInput')?.value || DEFAULT_TEAM_LABEL).trim().toUpperCase(),
+    date:document.getElementById('dateInput')?.value || '',
+    gameTime:(document.getElementById('gameTimeInput')?.value || '').trim().toUpperCase(),
+    venueType:(document.getElementById('venueTypeInput')?.value || 'HOME').trim().toUpperCase(),
+    address:(document.getElementById('addressInput')?.value || '').trim().toUpperCase()
+  };
+}
+
+function drawBackgroundCover(targetCtx,img,width,height){
+  if(!img) return;
+
+  const sourceWidth=img.naturalWidth || img.width;
+  const sourceHeight=img.naturalHeight || img.height;
+  const sourceAspect=sourceWidth/sourceHeight;
+  const targetAspect=width/height;
+  let sx=0,sy=0,sw=sourceWidth,sh=sourceHeight;
+
+  if(sourceAspect>targetAspect){
+    sw=sourceHeight*targetAspect;
+    sx=(sourceWidth-sw)/2;
+  }else if(sourceAspect<targetAspect){
+    sh=sourceWidth/targetAspect;
+    sy=(sourceHeight-sh)/2;
+  }
+
+  targetCtx.drawImage(img,sx,sy,sw,sh,0,0,width,height);
+}
+
+function drawPlayerNameLine(targetCtx,name,x,y,fontSize){
+  const first=name.first.trim();
+  const last=name.last.trim();
+  if(!first && !last) return false;
+
+  targetCtx.textAlign='left';
+  if(first && last){
+    targetCtx.font=fontSize+"px "+FIRST_NAME_FONT;
+    targetCtx.fillStyle='#ffffff';
+    const firstText=first+' ';
+    targetCtx.fillText(firstText,x,y);
+    const firstWidth=targetCtx.measureText(firstText).width;
+    targetCtx.font=fontSize+"px "+LAST_NAME_FONT;
+    targetCtx.fillStyle='#ffffff';
+    targetCtx.fillText(last,x+firstWidth,y);
+    return true;
+  }
+
+  targetCtx.font=fontSize+"px "+(last ? LAST_NAME_FONT : FIRST_NAME_FONT);
+  targetCtx.fillStyle='#ffffff';
+  targetCtx.fillText(last || first,x,y);
+  return true;
+}
+
+function render(targetCtx,width,height){
+  const {names,posterTitle,teamLabel,date,gameTime,venueType,address}=getPosterData();
+  const {px,py,ps}=createScale(width,height);
+  const C=targetCtx;
+  C.clearRect(0,0,width,height);
+
+  if(imgs.bg) C.drawImage(imgs.bg,0,0,width,height);
+
+  const pImg=imgs.players[state.playerIndex];
+  if(pImg){
+    C.save();
+    const pW=Math.round(width*0.625);
+    const pX=width-pW;
+    C.beginPath();C.rect(pX,0,pW,height);C.clip();
+
+    const bounds=getOpaqueBounds(pImg,true);
+    const targetPlayerHeight=Math.min((pW/PLAYER_REFERENCE_BOUNDS.width)*PLAYER_REFERENCE_BOUNDS.height,height);
+    const scale=targetPlayerHeight/bounds.height;
+    const dw=bounds.width*scale;
+    const dh=bounds.height*scale;
+    const dx=Math.max(pX,width-dw);
+    const dy=height-dh;
+    C.drawImage(pImg,bounds.x,bounds.y,bounds.width,bounds.height,dx,dy,dw,dh);
+    C.restore();
+  }
+
+  const badgeCY=py(118);
+  const badgeSize=ps(140);
+  drawBadge(C,imgs.bury,px(95),badgeCY,badgeSize);
+  drawBadge(C,imgs.teams[state.teamIndex],px(265),badgeCY,badgeSize);
+
+  const textOffsetY=py(TEXT_BLOCK_OFFSET_Y);
+  const headY=py(420)+textOffsetY;
+  const {lead:titleLead,accent:titleAccent}=splitPosterTitle(posterTitle);
+  C.font=ps(96)+"px "+LAST_NAME_FONT;
+  C.fillStyle='#ffffff';C.textAlign='left';
+  if(titleLead){
+    C.fillText(titleLead,px(44),headY);
+  }
+  const pw=titleLead ? C.measureText(titleLead).width : 0;
+  if(titleAccent){
+    C.fillStyle='#c9a84c';
+    C.fillText(titleAccent,px(44)+pw,headY);
+  }
+
+  let ny=headY+py(50);
+  if(teamLabel){
+    C.font=ps(TEAM_LABEL_FONT_SIZE)+"px "+LAST_NAME_FONT;
+    C.fillStyle='#c9a84c';
+    C.fillText(teamLabel,px(44),ny);
+    ny+=py(34);
+  }
+
+  names.forEach(name=>{
+    if(!drawPlayerNameLine(C,name,px(44),ny,ps(PLAYER_NAME_FONT_SIZE))) return;
+    ny+=py(PLAYER_NAME_LINE_HEIGHT);
+  });
+
+  const dateY=ny+py(20);
+  C.font=ps(MATCH_DATE_FONT_SIZE)+"px "+LAST_NAME_FONT;
+  C.fillStyle='#c9a84c';C.textAlign='left';
+  C.fillText(date,px(44),dateY);
+  const dateWidth=C.measureText(date).width;
+
+  if(gameTime){
+    C.font=ps(MATCH_TIME_FONT_SIZE)+"px "+LAST_NAME_FONT;
+    C.fillStyle='#ffffff';
+    C.fillText(gameTime,px(44)+dateWidth+px(22),dateY);
+  }
+
+  if(venueType || address){
+    const venueY=dateY+py(38);
+    C.font=ps(MATCH_META_FONT_SIZE)+"px "+LAST_NAME_FONT;
+    C.fillStyle='#c9a84c';
+    C.fillText(venueType,px(44),venueY);
+    if(address){
+      const venueTypeWidth=C.measureText(venueType).width;
+      C.fillStyle='#ffffff';
+      C.fillText(' / '+address,px(44)+venueTypeWidth,venueY);
+    }
+  }
+}
+
+function renderSquare(targetCtx,width,height){
+  const {names,posterTitle,teamLabel,date,gameTime,venueType,address}=getPosterData();
+  const C=targetCtx;
+  C.clearRect(0,0,width,height);
+
+  drawBackgroundCover(C,imgs.bg,width,height);
+
+  const overlay=C.createLinearGradient(0,0,width*0.78,0);
+  overlay.addColorStop(0,'rgba(25,33,61,0.94)');
+  overlay.addColorStop(0.58,'rgba(25,33,61,0.72)');
+  overlay.addColorStop(1,'rgba(25,33,61,0)');
+  C.fillStyle=overlay;
+  C.fillRect(0,0,width*0.8,height);
+
+  const playerImage=imgs.players[state.playerIndex];
+  if(playerImage){
+    C.save();
+    const playerPanelX=Math.round(width*0.38);
+    const playerPanelWidth=width-playerPanelX;
+    C.beginPath();
+    C.rect(playerPanelX,0,playerPanelWidth,height);
+    C.clip();
+
+    const bounds=getOpaqueBounds(playerImage,true);
+    const targetPlayerHeight=Math.min(height*0.98,(playerPanelWidth/PLAYER_REFERENCE_BOUNDS.width)*PLAYER_REFERENCE_BOUNDS.height);
+    const scale=targetPlayerHeight/bounds.height;
+    const drawWidth=bounds.width*scale;
+    const drawHeight=bounds.height*scale;
+    const drawX=Math.max(playerPanelX,width-drawWidth);
+    const drawY=height-drawHeight;
+    C.drawImage(playerImage,bounds.x,bounds.y,bounds.width,bounds.height,drawX,drawY,drawWidth,drawHeight);
+    C.restore();
+  }
+
+  const leftX=width*0.08;
+  const badgeSize=width*0.112;
+  const badgeCY=height*0.14;
+  const badgeGap=width*0.055;
+  drawBadge(C,imgs.bury,leftX+badgeSize/2,badgeCY,badgeSize);
+  drawBadge(C,imgs.teams[state.teamIndex],leftX+badgeSize*1.5+badgeGap,badgeCY,badgeSize);
+
+  const titleY=height*0.33;
+  const {lead:titleLead,accent:titleAccent}=splitPosterTitle(posterTitle);
+  C.font=Math.round(width*0.102)+"px "+LAST_NAME_FONT;
+  C.fillStyle='#ffffff';
+  C.textAlign='left';
+  if(titleLead){
+    C.fillText(titleLead,leftX,titleY);
+  }
+  const leadWidth=titleLead ? C.measureText(titleLead).width : 0;
+  if(titleAccent){
+    C.fillStyle='#c9a84c';
+    C.fillText(titleAccent,leftX+leadWidth,titleY);
+  }
+
+  let nameY=titleY+height*0.06;
+  if(teamLabel){
+    C.font=Math.round(width*0.04)+"px "+LAST_NAME_FONT;
+    C.fillStyle='#c9a84c';
+    C.fillText(teamLabel,leftX,nameY);
+    nameY+=height*0.05;
+  }
+
+  const squareNameSize=Math.round(width*0.034);
+  const squareLineHeight=height*0.038;
+  names.forEach(name=>{
+    if(!drawPlayerNameLine(C,name,leftX,nameY,squareNameSize)) return;
+    nameY+=squareLineHeight;
+  });
+
+  const dateY=Math.min(height*0.88,nameY+height*0.04);
+  C.font=Math.round(width*0.036)+"px "+LAST_NAME_FONT;
+  C.fillStyle='#c9a84c';
+  C.fillText(date,leftX,dateY);
+  const dateWidth=C.measureText(date).width;
+
+  if(gameTime){
+    C.font=Math.round(width*0.034)+"px "+LAST_NAME_FONT;
+    C.fillStyle='#ffffff';
+    C.fillText(gameTime,leftX+dateWidth+width*0.015,dateY);
+  }
+
+  if(venueType || address){
+    const venueY=dateY+height*0.045;
+    C.font=Math.round(width*0.033)+"px "+LAST_NAME_FONT;
+    C.fillStyle='#c9a84c';
+    C.fillText(venueType,leftX,venueY);
+    if(address){
+      const venueTypeWidth=C.measureText(venueType).width;
+      C.fillStyle='#ffffff';
+      C.fillText(' / '+address,leftX+venueTypeWidth,venueY);
+    }
+  }
+}
+
+function triggerDownload(url,filename,revoke=false){
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  if(revoke){
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+}
+
+function canvasToBlob(canvas,type='image/png'){
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(blob=>{
+      if(blob){
+        resolve(blob);
+        return;
+      }
+      reject(new Error('Canvas export failed.'));
+    },type);
+  });
+}
+
+function tryCanvasDownloadFallback(canvas,filename){
+  try{
+    const dataUrl=canvas.toDataURL('image/png');
+    triggerDownload(dataUrl,filename);
+    return true;
+  }catch(error){
+    console.warn('Canvas data URL fallback failed.',error);
+    return false;
+  }
+}
+
+function isIOSDevice(){
+  const ua=navigator.userAgent || '';
+  return /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+}
+
+function buildShareFile(blob,filename){
+  try{
+    return new File([blob],filename,{type:blob.type || 'image/png',lastModified:Date.now()});
+  }catch{
+    return null;
+  }
+}
+
+function canShareFile(file){
+  if(!file || typeof navigator.share!=='function' || typeof navigator.canShare!=='function') return false;
+
+  try{
+    return navigator.canShare({files:[file]});
+  }catch{
+    return false;
+  }
+}
+
+async function shareFile(file){
+  await navigator.share({
+    files:[file],
+    title:'Matchday Sheet',
+    text:'Save Image to add this poster to Photos.'
+  });
+}
+
+function openBlobPreview(blob){
+  const url=URL.createObjectURL(blob);
+  const previewWindow=window.open(url,'_blank','noopener');
+
+  if(!previewWindow){
+    URL.revokeObjectURL(url);
+    return false;
+  }
+
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  return true;
+}
+
+async function requestSaveHandle(filename){
+  if(typeof window.showSaveFilePicker!=='function') return null;
+
+  try{
+    return await window.showSaveFilePicker({
+      suggestedName:filename,
+      types:[{
+        description:'PNG Image',
+        accept:{'image/png':['.png']}
+      }]
+    });
+  }catch(error){
+    if(error?.name==='AbortError') throw error;
+    console.warn('Falling back to anchor download.',error);
+    return null;
+  }
+}
+
+async function saveBlob(blob,filename,fileHandle){
+  if(fileHandle){
+    try{
+      const writable=await fileHandle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return 'saved';
+    }catch(error){
+      console.warn('Falling back to browser download after save picker write failed.',error);
+    }
+  }
+
+  const shareableFile=buildShareFile(blob,filename);
+  if(isIOSDevice() && canShareFile(shareableFile)){
+    await shareFile(shareableFile);
+    return 'shared';
+  }
+
+  if(isIOSDevice() && openBlobPreview(blob)){
+    return 'preview';
+  }
+
+  triggerDownload(URL.createObjectURL(blob),filename,true);
+  return 'downloaded';
+}
+
+function buildExportSlug(){
+  const raw=(document.getElementById('dateInput')?.value || '').trim().toLowerCase();
+  const slug=raw.replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  return slug || 'matchday';
+}
+
+async function downloadExport(options){
+  if(!isUnlocked()){
+    showAuthError('Enter the password before downloading.');
+    passwordInput?.focus();
+    return;
+  }
+
+  let filename='';
+  let exportCanvas=null;
+  const buttonStates=exportButtons.map(button=>({button,label:button.textContent}));
+  buttonStates.forEach(({button})=>{button.disabled=true;});
+  if(options.button) options.button.textContent='Preparing...';
+  setDownloadStatus('Preparing '+options.statusLabel+'...','');
+
+  try{
+    filename=options.filenamePrefix+'-'+buildExportSlug()+'.png';
+    const fileHandle=isIOSDevice() ? null : await requestSaveHandle(filename);
+
+    await Promise.all([ensureFontsLoaded(),ensureExportAssetsLoaded()]);
+
+    exportCanvas=document.createElement('canvas');
+    exportCanvas.width=options.width;
+    exportCanvas.height=options.height;
+    options.render(exportCanvas.getContext('2d'),options.width,options.height);
+
+    const blob=await canvasToBlob(exportCanvas);
+    const saveResult=await saveBlob(blob,filename,fileHandle);
+
+    if(saveResult==='shared'){
+      setDownloadStatus('Share sheet opened. Tap Save Image to add the '+options.statusLabel+' to Photos.','success');
+    }else if(saveResult==='preview'){
+      setDownloadStatus('Image opened in a new tab. Use Share or long-press the image to save the '+options.statusLabel+' to Photos.','success');
+    }else if(saveResult==='saved'){
+      setDownloadStatus(options.successLabel,'success');
+    }else{
+      setDownloadStatus(options.fallbackSuccessLabel,'success');
+    }
+  }catch(error){
+    if(error?.name==='AbortError') return;
+    console.error(error);
+
+    if(location.protocol==='file:' && exportCanvas && filename && tryCanvasDownloadFallback(exportCanvas,filename)){
+      setDownloadStatus(options.fallbackSuccessLabel,'success');
+      return;
+    }
+
+    const fileProtocolMessage='Chrome can block or interrupt PNG saving when this file is opened directly from your disk. The editor now falls back to a normal browser download when it can, but if Chrome still refuses to save, use start-editor.command or run python3 -m http.server 8765 and open http://127.0.0.1:8765/.\n\nIf you publish with GitHub Pages or another static host, upload index.html together with the full assets directory.';
+    const genericMessage=error?.message ? options.errorLabel+': '+error.message : options.errorLabel+'. Please try again.';
+    const message=location.protocol==='file:' ? fileProtocolMessage : genericMessage;
+    setDownloadStatus(message,'error');
+  }finally{
+    buttonStates.forEach(({button,label})=>{
+      button.disabled=false;
+      button.textContent=label;
+    });
+    if(!downloadStatus.classList.contains('error') && !downloadStatus.classList.contains('success')){
+      resetDownloadStatus();
+    }
+  }
+}
+
+async function downloadSheet(){
+  if(!isUnlocked()){
+    showAuthError('Enter the password before downloading.');
+    passwordInput?.focus();
+    return;
+  }
+
+  const options={
+    button:downloadBtn,
+    filenamePrefix:'matchday',
+    statusLabel:'PNG',
+    successLabel:'PNG saved successfully.',
+    fallbackSuccessLabel:'PNG ready. If your browser did not save it automatically, use start-editor.command and open the editor via localhost.',
+    errorLabel:'PNG download failed',
+    width:EXPORT_W,
+    height:EXPORT_H,
+    render
+  };
+  const missingFields=collectMissingDownloadFields();
+  if(missingFields.length){
+    showDownloadValidationDialog(missingFields,options);
+    return;
+  }
+
+  return downloadExport(options);
+}
+
+async function init(){
+  if(appInitialized) return;
+  appInitialized=true;
+  resetDownloadStatus();
+  const initialFormState=getInitialFormState();
+  const pg=document.getElementById('playerGrid');
+  PLAYERS.forEach((p,i)=>{
+    const btn=document.createElement('button');
+    btn.className='player-btn'+(i===0?' active':'');
+    btn.type='button';
+    const img=document.createElement('img');
+    img.src=p.thumb||p.src;
+    img.alt=p.name;
+    img.decoding='async';
+    img.onerror=()=>{
+      if(img.dataset.previewFallback==='true') return;
+      img.dataset.previewFallback='true';
+      createTrimmedPreview(p).then(previewSrc=>{
+        img.src=previewSrc;
+      });
+    };
+    const label=document.createElement('span');
+    label.textContent=p.name;
+    btn.appendChild(img);
+    btn.appendChild(label);
+    btn.onclick=()=>{document.querySelectorAll('.player-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.playerIndex=i;};
+    pg.appendChild(btn);
+  });
+
+  document.querySelectorAll('.team-filter-btn').forEach(button=>{
+    button.addEventListener('click',()=>{
+      const nextFilter=button.dataset.teamFilter || 'all';
+      if(state.teamFilter===nextFilter) return;
+      state.teamFilter=nextFilter;
+      syncTeamFilterButtons();
+      renderTeamGrid();
+    });
+  });
+  syncTeamFilterButtons();
+  renderTeamGrid();
+
+  const nl=document.getElementById('nameList');
+  const initialNames=initialFormState?.names || DEFAULT_NAMES;
+  initialNames.forEach((name,i)=>{
+    const row=document.createElement('div');
+    row.className='name-row';
+    row.innerHTML=''
+      +'<span>'+(i+1)+'</span>'
+      +'<div class="name-row-fields">'
+      +'<input class="player-first-name-input" type="text" value="'+name.first+'" placeholder="Name">'
+      +'<input class="player-last-name-input" type="text" value="'+name.last+'" placeholder="Surname">'
+      +'</div>';
+    nl.appendChild(row);
+  });
+
+  const titleInput=document.getElementById('titleInput');
+  const teamLabelInput=document.getElementById('teamLabelInput');
+  const dateInput=document.getElementById('dateInput');
+  const gameTimeInput=document.getElementById('gameTimeInput');
+  const venueTypeInput=document.getElementById('venueTypeInput');
+  const addressInput=document.getElementById('addressInput');
+  if(initialFormState){
+    if(titleInput) titleInput.value=initialFormState.title;
+    if(teamLabelInput) teamLabelInput.value=initialFormState.teamLabel;
+    if(dateInput) dateInput.value=initialFormState.date;
+    if(gameTimeInput) gameTimeInput.value=initialFormState.gameTime;
+    if(venueTypeInput) venueTypeInput.value=initialFormState.venueType;
+    if(addressInput) addressInput.value=initialFormState.address;
+  }
+
+  attachFormPersistence();
+  saveStoredFormState();
+}
+
+authForm?.addEventListener('submit',event=>{
+  event.preventDefault();
+  if((passwordInput?.value || '')!==PASSWORD_VALUE){
+    showAuthError('Incorrect password.');
+    passwordInput?.select();
+    return;
+  }
+
+  showAuthError('');
+  setUnlocked();
+  unlockEditor();
+  init();
+});
+
+cancelDownloadValidationBtn?.addEventListener('click',()=>{
+  closeDownloadValidationDialog();
+});
+
+confirmDownloadValidationBtn?.addEventListener('click',async()=>{
+  const options=pendingDownloadOptions;
+  closeDownloadValidationDialog(false);
+  if(options) await downloadExport(options);
+});
+
+downloadValidationDialog?.addEventListener('click',event=>{
+  if(event.target===downloadValidationDialog){
+    closeDownloadValidationDialog();
+  }
+});
+
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape' && !downloadValidationDialog?.hidden){
+    closeDownloadValidationDialog();
+  }
+});
+
+if(isUnlocked()){
+  unlockEditor();
+  init();
+}else{
+  passwordInput?.focus();
+}
+</script>
+</body>
+</html>
